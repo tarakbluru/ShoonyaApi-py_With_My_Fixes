@@ -131,6 +131,7 @@ class NorenApi:
         while self.__stop_event.is_set() == False:
             try:
                 errored = self.__websocket.run_forever( ping_interval=3,  ping_payload='{"t":"h"}', skip_utf8_validation=True)
+                #errored = self.__websocket.run_forever( ping_interval=3,  ping_payload='{"t":"h"}')
                 if not errored:
                     logger.debug (f'run_forever: Exited Cleanly')
                 else:
@@ -266,7 +267,7 @@ class NorenApi:
         websocket.enableTrace (False,level='DEBUG')
         
         # Following will help while doing initial handshaking, I have observed initial handshake fails
-        # and socket will be waiting for data to arrrive.  Whenever, it works fine, it hardly takes 20ms
+        # and socket will be waiting for data to arrrive.  Whenever, it works fine, it hardly takes 200ms
         # but when it fails, it takes really long time. This ensures that if handshake packets does not 
         # arrive within 2s, socket recive will be timed out.
         # For details look into the code of Websocket client
@@ -288,10 +289,13 @@ class NorenApi:
     def close_websocket(self):
         if self.__websocket_connected == False:
             return
+        
+        #Following sequnce is important. When self.__websocket.close exits, the while loop __ws_run_forever
+        #above should exit cleanly.
         self.__stop_event.set()
+        self.__websocket.close()
         if self.__ws_thread and self.__ws_thread.is_alive():
             self.__ws_thread.join(timeout=2.0)
-        self.__websocket.close()
         self.__websocket_connected = False
 
     def login(self, userid, password, twoFA, vendor_code, api_secret, imei):
